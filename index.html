@@ -1,20 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-
-  <head>
-    <meta charset="UTF-8">
-    <title>Floating Music Mouse</title>
-    
-
-  </head>
-    
-  <body>
-  <!DOCTYPE html>
-<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Floating Music Mouse - Brownian Engine v5.0</title>
+    <meta name="color-scheme" content="dark">
+    <meta name="description" content="Floating Music Mouse - a stochastic, gesture-driven browser instrument built on Brownian motion.">
+    <title>Floating Music Mouse</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -22,11 +17,12 @@
             color: #e2e8f0;
             margin: 0;
             overflow: hidden;
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
             user-select: none;
+            -webkit-user-select: none;
         }
         canvas { display: block; }
-        
+
         /* FX Panel Styling */
         #fx-panel {
             position: absolute;
@@ -70,21 +66,23 @@
             letter-spacing: 0.05em;
         }
         .fx-val { color: #60a5fa; }
-        
+
         input[type=range] {
             -webkit-appearance: none;
+            appearance: none;
             width: 100%;
             background: transparent;
             margin: 4px 0;
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
+            appearance: none;
             height: 10px;
             width: 10px;
             border-radius: 50%;
             background: #60a5fa;
             cursor: pointer;
-            margin-top: -4px; 
+            margin-top: -4px;
         }
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%;
@@ -93,6 +91,20 @@
             background: #334155;
             border-radius: 1px;
         }
+        input[type=range]::-moz-range-thumb {
+            height: 10px;
+            width: 10px;
+            border: none;
+            border-radius: 50%;
+            background: #60a5fa;
+            cursor: pointer;
+        }
+        input[type=range]::-moz-range-track {
+            height: 2px;
+            background: #334155;
+            border-radius: 1px;
+        }
+        input[type=range]:focus-visible { outline: 1px solid #60a5fa; outline-offset: 4px; }
 
         .hud-panel {
             background: rgba(15, 15, 20, 0.95);
@@ -115,9 +127,9 @@
         .stat-label { font-size: 0.65rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; display: block; }
         .stat-value { font-size: 1.25rem; font-weight: 700; color: #f8fafc; line-height: 1; }
         .stat-sub { font-size: 0.7rem; color: #94a3b8; margin-top: 2px; display: block; }
-        
+
         .interactive { cursor: pointer; }
-        
+
         select.retro-select {
             background: rgba(0,0,0,0.3);
             color: #a78bfa;
@@ -129,9 +141,9 @@
             margin-top: 2px;
             outline: none;
         }
-        
+
         #file-input { display: none; }
-        
+
         /* Button styling for footer actions */
         .footer-btn {
             display: flex;
@@ -154,10 +166,75 @@
         .footer-btn:hover { background: #3b82f6; color: white; box-shadow: 0 0 10px rgba(59,130,246,0.5); }
         .footer-btn:active { transform: scale(0.95); }
 
+        /* Transient toast used instead of blocking alert() */
+        #toast {
+            position: fixed;
+            left: 50%;
+            bottom: 90px;
+            transform: translateX(-50%);
+            background: rgba(15, 15, 20, 0.96);
+            border: 1px solid rgba(248, 113, 113, 0.5);
+            color: #fca5a5;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        #toast.show { opacity: 1; }
+
+
+        /* ------------------------------------------------------------------
+           CDN fallback layer.
+
+           Layout, z-order and hit-testing all ride on Tailwind utilities from
+           a CDN. When that request fails - offline, blocked, opened as a local
+           file - the instrument collapses into document flow and the transport
+           buttons stop being clickable. These rules restate exactly what the
+           utilities in the markup already do, so they are a no-op when Tailwind
+           loads and keep the instrument playable when it does not.
+           ------------------------------------------------------------------ */
+        #start-screen {
+            position: fixed; inset: 0; z-index: 50;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 3rem; text-align: center;
+        }
+        #dashboard {
+            position: fixed; top: 1.5rem; left: 1.5rem; right: 1.5rem; z-index: 40;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 1rem; pointer-events: none;
+        }
+        #footer {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+            padding: 0.75rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            pointer-events: none;
+        }
+        #canvas { position: fixed; inset: 0; z-index: 0; }
+
+        .hidden { display: none; }
+        .opacity-0 { opacity: 0; }
+        .pointer-events-none { pointer-events: none; }
+        .pointer-events-auto { pointer-events: auto; }
+        .text-green-400 { color: #4ade80; }
+        .text-blue-400 { color: #60a5fa; }
+        .text-yellow-400 { color: #facc15; }
+        .text-purple-400 { color: #c084fc; }
+
         .blink-pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            .blink-pulse { animation: none; }
+            .hud-panel, #start-screen, #dashboard, #footer, #fx-panel { transition: none !important; }
+        }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -165,48 +242,49 @@
     <div id="start-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-12 transition-opacity duration-700">
         <div class="max-w-3xl w-full text-center">
             <h1 class="text-6xl font-black mb-4 tracking-tighter text-white uppercase">Music Mouse</h1>
-            <p class="text-blue-400 font-bold tracking-widest uppercase text-sm mb-12">v5.0 // Floating Engine (Brownian)</p>
+            <p class="text-blue-400 font-bold tracking-widest uppercase text-sm mb-12">v5.1 // Floating Engine (Brownian)</p>
             <button id="launch-btn" class="group relative px-10 py-4 bg-white text-black font-bold text-xl uppercase tracking-tight hover:bg-blue-400 transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)]">
                 Initialize Instrument
             </button>
+            <p class="mt-10 text-slate-500 text-xs tracking-wide">Move the mouse to play &middot; <span class="key-tag">M</span> releases the pointer for the FX rack</p>
         </div>
     </div>
 
     <!-- FX Rack -->
     <div id="fx-panel" class="hidden opacity-0 transition-opacity duration-300">
         <div class="text-xs font-bold text-white mb-2 pb-1 border-b border-gray-700">MASTER FX RACK</div>
-        
+
         <!-- Spatial -->
         <div class="fx-row">
             <div class="fx-label"><span>REVERB</span><span id="val-reverb" class="fx-val">0%</span></div>
-            <input type="range" id="fx-reverb" min="0" max="100" value="0">
+            <input type="range" id="fx-reverb" min="0" max="100" value="0" aria-label="Reverb">
         </div>
         <div class="fx-row">
             <div class="fx-label"><span>DELAY</span><span id="val-delay" class="fx-val">0%</span></div>
-            <input type="range" id="fx-delay" min="0" max="100" value="0">
+            <input type="range" id="fx-delay" min="0" max="100" value="0" aria-label="Delay">
         </div>
         <div class="fx-row">
             <div class="fx-label"><span>WIDEN</span><span id="val-widen" class="fx-val">0%</span></div>
-            <input type="range" id="fx-widen" min="0" max="100" value="0">
+            <input type="range" id="fx-widen" min="0" max="100" value="0" aria-label="Widen">
         </div>
 
         <!-- Modulation -->
         <div class="fx-section">
             <div class="fx-row">
                 <div class="fx-label"><span>TREMOLO DEPTH</span><span id="val-tremolo" class="fx-val">0%</span></div>
-                <input type="range" id="fx-tremolo" min="0" max="100" value="0">
+                <input type="range" id="fx-tremolo" min="0" max="100" value="0" aria-label="Tremolo depth">
             </div>
             <div class="fx-row">
                 <div class="fx-label"><span>TREMOLO RATE</span><span id="val-tremolo-rate" class="fx-val">0%</span></div>
-                <input type="range" id="fx-tremolo-rate" min="0" max="100" value="0">
+                <input type="range" id="fx-tremolo-rate" min="0" max="100" value="0" aria-label="Tremolo rate">
             </div>
             <div class="fx-row">
                 <div class="fx-label"><span>RING MOD</span><span id="val-ring" class="fx-val">0%</span></div>
-                <input type="range" id="fx-ring" min="0" max="100" value="0">
+                <input type="range" id="fx-ring" min="0" max="100" value="0" aria-label="Ring modulation">
             </div>
             <div class="fx-row">
                 <div class="fx-label"><span>PHASER</span><span id="val-phaser" class="fx-val">0%</span></div>
-                <input type="range" id="fx-phaser" min="0" max="100" value="0">
+                <input type="range" id="fx-phaser" min="0" max="100" value="0" aria-label="Phaser">
             </div>
         </div>
 
@@ -214,30 +292,30 @@
         <div class="fx-section">
             <div class="fx-row">
                 <div class="fx-label"><span>OVERDRIVE</span><span id="val-drive" class="fx-val">0%</span></div>
-                <input type="range" id="fx-drive" min="0" max="100" value="0">
+                <input type="range" id="fx-drive" min="0" max="100" value="0" aria-label="Overdrive">
             </div>
             <div class="fx-row">
                 <div class="fx-label"><span>SHAPER</span><span id="val-shaper" class="fx-val">0%</span></div>
-                <input type="range" id="fx-shaper" min="0" max="100" value="0">
+                <input type="range" id="fx-shaper" min="0" max="100" value="0" aria-label="Wave shaper">
             </div>
             <div class="fx-row">
                 <div class="fx-label"><span>BITCRUSHER</span><span id="val-crush" class="fx-val">0%</span></div>
-                <input type="range" id="fx-crush" min="0" max="100" value="0">
+                <input type="range" id="fx-crush" min="0" max="100" value="0" aria-label="Bitcrusher">
             </div>
             <div class="fx-row">
                 <div class="fx-label"><span>HARMONICS</span><span id="val-harm" class="fx-val">0%</span></div>
-                <input type="range" id="fx-harm" min="0" max="100" value="0">
+                <input type="range" id="fx-harm" min="0" max="100" value="0" aria-label="Harmonics">
             </div>
             <div class="fx-row">
                 <div class="fx-label"><span>MANGLER</span><span id="val-mangle" class="fx-val">0%</span></div>
-                <input type="range" id="fx-mangle" min="0" max="100" value="0">
+                <input type="range" id="fx-mangle" min="0" max="100" value="0" aria-label="Mangler">
             </div>
         </div>
     </div>
 
     <!-- Main Dashboard -->
     <div id="dashboard" class="fixed top-6 left-6 right-6 z-40 flex justify-between items-start pointer-events-none opacity-0 transition-opacity duration-500">
-        
+
         <!-- Left Cluster -->
         <div class="flex gap-4 pointer-events-auto">
             <div class="hud-panel p-4 rounded min-w-[180px] border-l-4 border-l-blue-500">
@@ -245,24 +323,30 @@
                 <span id="ui-mode" class="stat-value">DIATONIC</span>
                 <span id="ui-voicing" class="stat-sub">Voicing: 2-2 Split</span>
             </div>
-            
+
             <div class="hud-panel p-4 rounded min-w-[180px] border-l-4 border-l-amber-500">
                 <span class="stat-label">Performance Mode</span>
                 <span id="ui-treatment" class="stat-value">CHORD</span>
                 <span id="ui-motion" class="stat-sub">Motion: Parallel</span>
             </div>
+
+            <div class="hud-panel p-4 rounded min-w-[120px] border-l-4 border-l-emerald-500">
+                <span class="stat-label">Layers</span>
+                <span id="ui-layers" class="stat-value">1/8</span>
+                <span id="ui-velocity" class="stat-sub">Vel: 60%</span>
+            </div>
         </div>
 
         <!-- Right Cluster -->
         <div class="flex gap-4 pointer-events-auto">
-             <div id="btn-tempo" class="hud-panel p-4 rounded text-right min-w-[100px] interactive">
+             <div id="btn-tempo" class="hud-panel p-4 rounded text-right min-w-[100px] interactive" title="Click left half to slow down, right half to speed up">
                 <span class="stat-label">Clock (+/-)</span>
                 <span id="ui-tempo" class="stat-value">120</span>
-                <span class="stat-sub">BPM</span>
+                <span id="ui-swing" class="stat-sub">BPM</span>
             </div>
             <div class="hud-panel p-4 rounded text-right min-w-[140px]">
                 <span class="stat-label">Voice / Artic.</span>
-                <select id="ui-wave" class="retro-select">
+                <select id="ui-wave" class="retro-select" aria-label="Oscillator waveform">
                     <option value="sawtooth">SAWTOOTH</option>
                     <option value="square">SQUARE</option>
                     <option value="triangle">TRIANGLE</option>
@@ -279,52 +363,68 @@
         </div>
     </div>
 
-    <!-- Bottom Controls with REAL BUTTONS -->
+    <!-- Bottom Controls -->
     <div id="footer" class="fixed bottom-0 left-0 right-0 z-40 py-3 px-8 pointer-events-none opacity-0 transition-opacity duration-500 bg-gradient-to-t from-black via-black/80 to-transparent flex justify-between items-center">
         <!-- Key Commands Info (Non-interactive) -->
         <div class="flex flex-wrap gap-x-6 gap-y-2 text-[10px] uppercase tracking-wide font-bold text-slate-400 flex-1">
             <div class="flex items-center"><span class="key-tag">SPACE</span> Add Layer</div>
             <div class="flex items-center"><span class="key-tag">M</span> UI Mode</div>
-            <div class="flex items-center"><span class="key-tag">7</span> Atmos (Hydro)</div>
+            <div class="flex items-center"><span class="key-tag">A</span> Atmos (Hydro)</div>
             <div class="flex items-center"><span class="key-tag">I</span> Voice</div>
             <div class="flex items-center"><span class="key-tag">R-U</span> Scales</div>
             <div class="flex items-center"><span class="key-tag">Z-C</span> Modes</div>
             <div class="flex items-center"><span class="key-tag">P</span> Improv</div>
             <div class="flex items-center"><span class="key-tag">D</span> Contrary</div>
             <div class="flex items-center"><span class="key-tag">F</span> Voicing</div>
+            <div class="flex items-center"><span class="key-tag">G</span> Pattern</div>
             <div class="flex items-center"><span class="key-tag">V</span> Drift (Float)</div>
             <div class="flex items-center"><span class="key-tag">S</span> Pluck</div>
+            <div class="flex items-center"><span class="key-tag">B</span> Swing</div>
+            <div class="flex items-center"><span class="key-tag">1-8</span> Velocity</div>
             <div class="flex items-center"><span class="key-tag">DEL</span> Reset</div>
         </div>
-        
+
         <!-- Action Buttons (Interactive) -->
         <div class="flex gap-2 pointer-events-auto ml-4" style="z-index: 100;">
-            <button id="btn-save" class="footer-btn"><span class="mr-2 text-lg">⬇</span> SAVE</button>
-            <button id="btn-load" class="footer-btn"><span class="mr-2 text-lg">⬆</span> LOAD</button>
+            <button id="btn-save" class="footer-btn" type="button"><span class="mr-2 text-lg">&#11015;</span> SAVE</button>
+            <button id="btn-load" class="footer-btn" type="button"><span class="mr-2 text-lg">&#11014;</span> LOAD</button>
         </div>
-        
-        <input type="file" id="file-input" accept=".json">
+
+        <input type="file" id="file-input" accept="application/json,.json">
     </div>
+
+    <div id="toast" role="status" aria-live="polite"></div>
 
     <canvas id="canvas"></canvas>
 
     <script type="module">
         /**
-         * FLOATING MUSIC MOUSE - v5.0 (Brownian Edition)
-         * * Implements "Implementing Brownian Motion in Browser Instruments.pdf"
+         * FLOATING MUSIC MOUSE - v5.1 (Brownian Edition)
+         *
          * 1. Box-Muller Transform for Gaussian distributions (Organic Randomness).
          * 2. Leaky Integrator Brown Noise for "Atmosphere" (Hydro mode).
          * 3. Reflective Boundaries for Drifting Notes (Physics-based).
          * 4. Tethered Brownian Motion for "Drift" (Stochastic vs Deterministic).
+         *
+         * Audio is scheduled ahead of time against the AudioContext clock; the
+         * render loop only reads state, it never drives timing.
          */
+
+        const MAX_NODES = 8;
+        const VOICES_PER_NODE = 4;
+        const LOOKAHEAD = 0.1;      // seconds of audio scheduled in advance
+        const SCHEDULER_TICK = 25;  // ms between scheduler passes
+        const MAX_DT = 0.05;        // clamp physics steps so backgrounded tabs cannot explode
+        const MIN_FREQ = 20;
+        const MAX_FREQ = 12000;
 
         const PATTERN_DATA = [
             { name: "Pattern 1 (Phrygian)", data: [0, 4, 5, 0, 4, 3, 4, 5, 0, 4] },
             { name: "Pattern 2 (Triad)",    data: [0, 2, 4, 7, 4, 2] },
             { name: "Pattern 3 (Quartal)",  data: [0, 5, 10, 15, 10, 5] },
-            { name: "Pattern 4 (Wide)",     data: [0, 12, 7, 0, -5, 7, 12] }, 
+            { name: "Pattern 4 (Wide)",     data: [0, 12, 7, 0, -5, 7, 12] },
             { name: "Pattern 5 (Scale)",    data: [0, 1, 2, 3, 4, 5, 4, 3, 2, 1] },
-            { name: "Pattern 6 (Micro)",    data: [0, 1, 0, -1, 0, 1] } 
+            { name: "Pattern 6 (Micro)",    data: [0, 1, 0, -1, 0, 1] }
         ];
 
         const SCALES = {
@@ -336,14 +436,47 @@
             'u': { id: 'CHROMATIC',      intervals: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], color: '#e2e8f0' }
         };
 
-        // --- STOCHASTIC MATH UTILITIES (From PDF) ---
-        
-        // Box-Muller Transform: Converts uniform random (Math.random) to Gaussian (Normal) distribution
+        const WAVE_TYPES = ['sawtooth', 'square', 'triangle', 'sine'];
+
+        // --- UTILITIES ---
+
+        const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+        // Coerce untrusted (preset) input into a finite number inside a range.
+        const safeNum = (v, fallback, lo, hi) => {
+            const n = Number(v);
+            return Number.isFinite(n) ? clamp(n, lo, hi) : fallback;
+        };
+
+        const $ = (id) => document.getElementById(id);
+
+        let toastTimer = 0;
+        function toast(msg) {
+            const el = $('toast');
+            if (!el) return;
+            el.textContent = msg;
+            el.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+        }
+
+        // Box-Muller Transform: converts uniform random into a Gaussian (normal) distribution.
         function gaussianRandom() {
             let u = 0, v = 0;
-            while(u === 0) u = Math.random(); // Converting [0,1) to (0,1)
-            while(v === 0) v = Math.random();
+            while (u === 0) u = Math.random(); // Converting [0,1) to (0,1)
+            while (v === 0) v = Math.random();
             return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        }
+
+        // Reflect a value back into [0,1], repeating until it lands inside.
+        // A single fold is not enough once a large stochastic kick overshoots.
+        function reflect01(value) {
+            let v = value;
+            for (let i = 0; i < 8 && (v < 0 || v > 1); i++) {
+                if (v > 1) v = 2 - v;
+                if (v < 0) v = -v;
+            }
+            return clamp(v, 0, 1);
         }
 
         // --- FX CHAIN ---
@@ -352,7 +485,14 @@
                 this.ctx = ctx;
                 this.input = ctx.createGain();
                 this.output = ctx.createGain();
-                this.fxState = {}; 
+                this.wet = ctx.createGain();    // all wet returns land here, then get trimmed
+                this.wet.connect(this.output);
+
+                // Every parameter starts at a known value so presets always round-trip.
+                this.fxState = {
+                    reverb: 0, delay: 0, widen: 0, shaper: 0, ring: 0, drive: 0,
+                    phaser: 0, tremolo: 0, 'tremolo-rate': 0, crush: 0, harm: 0, mangle: 0
+                };
 
                 // 1. Reverb
                 this.reverb = ctx.createConvolver();
@@ -360,14 +500,19 @@
                 this.reverbGain = ctx.createGain(); this.reverbGain.gain.value = 0;
 
                 // 2. Delay
-                this.delay = ctx.createDelay(); this.delay.delayTime.value = 0.35;
+                this.delay = ctx.createDelay(1.0); this.delay.delayTime.value = 0.35;
                 this.delayFb = ctx.createGain(); this.delayFb.gain.value = 0.4;
                 this.delayGain = ctx.createGain(); this.delayGain.gain.value = 0;
                 this.delay.connect(this.delayFb).connect(this.delay);
 
-                // 3. Widen
+                // 3. Widen - an actual auto-panner rather than a one-shot random pan position
                 this.widen = ctx.createStereoPanner();
-                this.widenGain = ctx.createGain(); this.widenGain.gain.value = 0; 
+                this.widenLfo = ctx.createOscillator();
+                this.widenLfo.frequency.value = 0.15;
+                this.widenDepth = ctx.createGain(); this.widenDepth.gain.value = 0;
+                this.widenLfo.connect(this.widenDepth).connect(this.widen.pan);
+                this.widenLfo.start();
+                this.widenGain = ctx.createGain(); this.widenGain.gain.value = 0;
 
                 // 4. Wave Shaper
                 this.shaper = ctx.createWaveShaper();
@@ -393,10 +538,10 @@
 
                 // 8. Tremolo
                 this.tremoloInput = ctx.createGain();
-                this.tremoloGain = ctx.createGain(); this.tremoloGain.gain.value = 0; 
+                this.tremoloGain = ctx.createGain(); this.tremoloGain.gain.value = 0;
                 this.lfo = ctx.createOscillator();
                 this.lfo.frequency.value = 4.0;
-                this.lfoAmp = ctx.createGain(); 
+                this.lfoAmp = ctx.createGain();
                 this.lfoAmp.gain.value = 0;
                 this.lfo.connect(this.lfoAmp).connect(this.tremoloInput.gain);
                 this.lfo.start();
@@ -416,32 +561,32 @@
                 this.mangle.curve = this.makeFoldbackCurve();
                 this.mangleGain = ctx.createGain(); this.mangleGain.gain.value = 0;
 
-                // Wiring
-                this.input.connect(this.output); 
+                // Wiring: dry straight through, every wet return summed into this.wet.
+                this.input.connect(this.output);
 
-                this.input.connect(this.reverb); this.reverb.connect(this.reverbGain).connect(this.output);
-                this.input.connect(this.delay); this.delay.connect(this.delayGain).connect(this.output);
-                this.input.connect(this.widen); this.widen.connect(this.widenGain).connect(this.output);
-                
-                this.input.connect(this.shaper); this.shaper.connect(this.shaperGain).connect(this.output);
-                this.input.connect(this.ringMod); this.ringMod.connect(this.ringGain).connect(this.output);
-                this.input.connect(this.drive); this.drive.connect(this.driveGain).connect(this.output);
-                
-                this.input.connect(this.phaserInput); 
-                this.phaserOutput.connect(this.phaserGain).connect(this.output);
+                this.input.connect(this.reverb); this.reverb.connect(this.reverbGain).connect(this.wet);
+                this.input.connect(this.delay); this.delay.connect(this.delayGain).connect(this.wet);
+                this.input.connect(this.widen); this.widen.connect(this.widenGain).connect(this.wet);
 
-                this.input.connect(this.tremoloInput); this.tremoloInput.connect(this.tremoloGain).connect(this.output);
+                this.input.connect(this.shaper); this.shaper.connect(this.shaperGain).connect(this.wet);
+                this.input.connect(this.ringMod); this.ringMod.connect(this.ringGain).connect(this.wet);
+                this.input.connect(this.drive); this.drive.connect(this.driveGain).connect(this.wet);
 
-                this.input.connect(this.crush); this.crush.connect(this.crushGain).connect(this.output);
-                this.input.connect(this.harm); this.harm.connect(this.harmGain).connect(this.output);
-                this.input.connect(this.mangle); this.mangle.connect(this.mangleGain).connect(this.output);
+                this.input.connect(this.phaserInput);
+                this.phaserOutput.connect(this.phaserGain).connect(this.wet);
+
+                this.input.connect(this.tremoloInput); this.tremoloInput.connect(this.tremoloGain).connect(this.wet);
+
+                this.input.connect(this.crush); this.crush.connect(this.crushGain).connect(this.wet);
+                this.input.connect(this.harm); this.harm.connect(this.harmGain).connect(this.wet);
+                this.input.connect(this.mangle); this.mangle.connect(this.mangleGain).connect(this.wet);
             }
 
             createPhaserGraph() {
                 const stages = 3;
                 let lastNode = this.phaserInput;
                 const filters = [];
-                for(let i=0; i<stages; i++) {
+                for (let i = 0; i < stages; i++) {
                     const f = this.ctx.createBiquadFilter();
                     f.type = 'allpass';
                     f.frequency.value = 800;
@@ -461,7 +606,7 @@
 
             impulseResponse(duration, decay) {
                 const rate = this.ctx.sampleRate;
-                const len = rate * duration;
+                const len = Math.floor(rate * duration);
                 const buff = this.ctx.createBuffer(2, len, rate);
                 for (let c = 0; c < 2; c++) {
                     const data = buff.getChannelData(c);
@@ -472,76 +617,79 @@
                 return buff;
             }
 
+            // 4096 points resolve these curves well past audible precision; the previous
+            // 44100-point tables cost ~1MB of Float32 across the five shapers for nothing.
+            static CURVE_SAMPLES = 4096;
+
+            buildCurve(fn) {
+                const n = FXChain.CURVE_SAMPLES;
+                const curve = new Float32Array(n);
+                for (let i = 0; i < n; ++i) curve[i] = fn(i * 2 / (n - 1) - 1);
+                return curve;
+            }
+
             makeDistortionCurve(amount) {
                 const k = amount;
-                const n_samples = 44100;
-                const curve = new Float32Array(n_samples);
-                for (let i = 0; i < n_samples; ++i) {
-                    const x = i * 2 / n_samples - 1;
-                    curve[i] = (3 + k) * x * 20 * (Math.PI / 180) / (Math.PI + k * Math.abs(x));
-                }
-                return curve;
+                return this.buildCurve(x => (3 + k) * x * 20 * (Math.PI / 180) / (Math.PI + k * Math.abs(x)));
             }
 
             makeBitCrushCurve(bits) {
-                const n_samples = 44100;
-                const curve = new Float32Array(n_samples);
                 const step = Math.pow(0.5, bits);
-                for (let i = 0; i < n_samples; ++i) {
-                    const x = i * 2 / n_samples - 1;
-                    curve[i] = step * Math.floor(x / step + 0.5);
-                }
-                return curve;
+                return this.buildCurve(x => step * Math.floor(x / step + 0.5));
             }
 
             makeChebyshev(amount) {
-                const n_samples = 44100;
-                const curve = new Float32Array(n_samples);
-                for (let i = 0; i < n_samples; ++i) {
-                    const x = i * 2 / n_samples - 1;
-                    curve[i] = (16*Math.pow(x,5) - 20*Math.pow(x,3) + 5*x) * (amount/100); 
-                }
-                return curve;
+                return this.buildCurve(x => (16 * Math.pow(x, 5) - 20 * Math.pow(x, 3) + 5 * x) * (amount / 100));
             }
 
             makeFoldbackCurve() {
-                const n_samples = 44100;
-                const curve = new Float32Array(n_samples);
-                for (let i = 0; i < n_samples; ++i) {
-                    const x = i * 2 / n_samples - 1;
-                    curve[i] = Math.sin(x * Math.PI * 4);
+                return this.buildCurve(x => Math.sin(x * Math.PI * 4));
+            }
+
+            // Wet returns sum on top of an unattenuated dry path, so without this the
+            // master level climbs with every effect engaged and the limiter just crushes.
+            updateTrim() {
+                let sum = 0;
+                for (const key in this.fxState) {
+                    if (key === 'tremolo-rate') continue; // a rate, not an amount
+                    sum += (this.fxState[key] || 0) / 100;
                 }
-                return curve;
+                const trim = 1 / (1 + 0.30 * sum);
+                this.output.gain.setTargetAtTime(trim, this.ctx.currentTime, 0.08);
             }
 
             setParam(name, valPct) {
-                this.fxState[name] = valPct; // Save state
-                const val = valPct / 100;
+                if (!(name in this.fxState)) return;
+                const pct = safeNum(valPct, 0, 0, 100);
+                this.fxState[name] = pct;
+                const val = pct / 100;
                 const now = this.ctx.currentTime;
                 const t = 0.05;
-                if(name==='reverb') this.reverbGain.gain.setTargetAtTime(val * 3.0, now, t);
-                if(name==='delay') this.delayGain.gain.setTargetAtTime(val * 0.8, now, t);
-                if(name==='widen') { 
-                    this.widen.pan.value = (Math.random()*2-1) * val; 
-                    this.widenGain.gain.setTargetAtTime(val, now, t); 
-                }
-                if(name==='shaper') this.shaperGain.gain.setTargetAtTime(val * 0.6, now, t);
-                if(name==='ring') this.ringGain.gain.setTargetAtTime(val * 1.0, now, t);
-                if(name==='drive') this.driveGain.gain.setTargetAtTime(val * 0.5, now, t);
-                if(name==='phaser') this.phaserGain.gain.setTargetAtTime(val * 1.5, now, t);
-                
-                if(name==='tremolo') {
-                    this.tremoloGain.gain.setTargetAtTime(val, now, t);
-                    this.lfoAmp.gain.setTargetAtTime(val, now, t);
-                }
-                if(name==='tremolo-rate') {
-                    const rate = 0.5 + (valPct / 100) * 14.5;
-                    this.lfo.frequency.setTargetAtTime(rate, now, t);
+
+                switch (name) {
+                    case 'reverb': this.reverbGain.gain.setTargetAtTime(val * 1.6, now, t); break;
+                    case 'delay':  this.delayGain.gain.setTargetAtTime(val * 0.7, now, t); break;
+                    case 'widen':
+                        this.widenDepth.gain.setTargetAtTime(val, now, t);
+                        this.widenGain.gain.setTargetAtTime(val * 0.8, now, t);
+                        break;
+                    case 'shaper': this.shaperGain.gain.setTargetAtTime(val * 0.5, now, t); break;
+                    case 'ring':   this.ringGain.gain.setTargetAtTime(val * 0.9, now, t); break;
+                    case 'drive':  this.driveGain.gain.setTargetAtTime(val * 0.45, now, t); break;
+                    case 'phaser': this.phaserGain.gain.setTargetAtTime(val * 1.0, now, t); break;
+                    case 'tremolo':
+                        this.tremoloGain.gain.setTargetAtTime(val, now, t);
+                        this.lfoAmp.gain.setTargetAtTime(val, now, t);
+                        break;
+                    case 'tremolo-rate':
+                        this.lfo.frequency.setTargetAtTime(0.5 + val * 14.5, now, t);
+                        break;
+                    case 'crush':  this.crushGain.gain.setTargetAtTime(val * 0.6, now, t); break;
+                    case 'harm':   this.harmGain.gain.setTargetAtTime(val * 0.6, now, t); break;
+                    case 'mangle': this.mangleGain.gain.setTargetAtTime(val * 0.45, now, t); break;
                 }
 
-                if(name==='crush') this.crushGain.gain.setTargetAtTime(val * 0.8, now, t);
-                if(name==='harm') this.harmGain.gain.setTargetAtTime(val * 0.7, now, t);
-                if(name==='mangle') this.mangleGain.gain.setTargetAtTime(val * 0.6, now, t);
+                this.updateTrim();
             }
         }
 
@@ -549,7 +697,7 @@
             constructor(ctx, dest) {
                 this.ctx = ctx;
                 this.gain = ctx.createGain();
-                this.gain.gain.value = 0; 
+                this.gain.gain.value = 0;
                 this.filter = ctx.createBiquadFilter();
                 this.filter.type = 'lowpass';
                 this.filter.Q.value = 3;
@@ -559,153 +707,185 @@
                 this.currentFreq = 0;
             }
 
-            trigger(freq, velocity, duration, type) {
-                const now = this.ctx.currentTime;
-                this.ensureOsc(type);
-                this.osc.frequency.setValueAtTime(freq, now);
-                this.filter.frequency.setValueAtTime(freq * 3, now);
-                this.gain.gain.cancelScheduledValues(now);
-                this.gain.gain.setValueAtTime(0, now);
-                this.gain.gain.linearRampToValueAtTime(velocity * 0.3, now + 0.01);
-                this.gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-                this.currentFreq = freq;
+            // Cancel whatever envelope is in flight without introducing a discontinuity.
+            resetEnvelope(param, when) {
+                if (typeof param.cancelAndHoldAtTime === 'function') param.cancelAndHoldAtTime(when);
+                else param.cancelScheduledValues(when);
             }
 
-            updateContinuous(freq, velocity, type, detune=0, volMod=1.0) {
+            /**
+             * Fire a note AT `time` on the AudioContext clock. Honouring the scheduled
+             * time is what makes the lookahead scheduler worth having - triggering at
+             * currentTime instead collapses every note in a scheduler pass onto the
+             * same instant and quantises the whole instrument to the 25ms timer.
+             */
+            trigger(freq, velocity, duration, type, time) {
+                const t = Math.max(time, this.ctx.currentTime);
+                this.ensureOsc(type);
+                const f = clamp(freq, MIN_FREQ, MAX_FREQ);
+                this.osc.frequency.setValueAtTime(f, t);
+                this.filter.frequency.setValueAtTime(clamp(f * 3, MIN_FREQ, 16000), t);
+
+                const peak = Math.max(0.0006, velocity * 0.3);
+                const g = this.gain.gain;
+                this.resetEnvelope(g, t);
+                g.linearRampToValueAtTime(0, t + 0.003);          // duck any tail, no click
+                g.linearRampToValueAtTime(peak, t + 0.012);       // attack
+                g.exponentialRampToValueAtTime(0.0005, t + Math.max(0.05, duration));
+                g.linearRampToValueAtTime(0, t + Math.max(0.05, duration) + 0.02);
+                this.currentFreq = f;
+            }
+
+            updateContinuous(freq, velocity, type, detune = 0, volMod = 1.0) {
                 this.ensureOsc(type);
                 const now = this.ctx.currentTime;
-                const glide = 0.05; 
-                const finalFreq = freq * (1 + detune); 
+                const glide = 0.05;
+                const f = clamp(freq * (1 + detune), MIN_FREQ, MAX_FREQ);
                 const finalVol = (velocity * 0.12) * volMod;
-                this.osc.frequency.setTargetAtTime(finalFreq, now, glide);
-                this.filter.frequency.setTargetAtTime(freq * 3, now, glide);
+                this.osc.frequency.setTargetAtTime(f, now, glide);
+                this.filter.frequency.setTargetAtTime(clamp(freq * 3, MIN_FREQ, 16000), now, glide);
                 this.gain.gain.setTargetAtTime(finalVol, now, glide);
                 this.currentFreq = freq;
             }
 
             ensureOsc(type) {
-                if (!this.osc || this.osc.type !== type) {
-                    if (this.osc) { this.osc.stop(); this.osc.disconnect(); }
+                if (!this.osc) {
                     this.osc = this.ctx.createOscillator();
                     this.osc.type = type;
                     this.osc.connect(this.filter);
                     this.osc.start();
+                } else if (this.osc.type !== type) {
+                    // Assigning type is free and glitchless; rebuilding the oscillator
+                    // for a waveform change restarts its phase and clicks.
+                    this.osc.type = type;
                 }
             }
 
-            stop() {
-                if (this.osc) {
-                    this.gain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
-                    const oldOsc = this.osc;
-                    this.osc = null;
-                    setTimeout(() => { try { oldOsc.stop(); } catch(e){} }, 100);
-                }
+            stop(fade = 0.08) {
+                if (!this.osc) return;
+                const now = this.ctx.currentTime;
+                const g = this.gain.gain;
+                this.resetEnvelope(g, now);
+                g.linearRampToValueAtTime(0, now + fade);
+
+                const old = this.osc;
+                this.osc = null;
+                old.onended = () => { try { old.disconnect(); } catch (e) { /* already torn down */ } };
+                try { old.stop(now + fade + 0.02); } catch (e) { /* already stopped */ }
+            }
+
+            dispose() {
+                this.stop(0.05);
+                // Let the fade finish before unhooking from the graph.
+                setTimeout(() => {
+                    try { this.filter.disconnect(); } catch (e) { /* noop */ }
+                    try { this.gain.disconnect(); } catch (e) { /* noop */ }
+                }, 200);
             }
         }
 
         class PerformanceNode {
             constructor(ctx, dest, state) {
                 this.ctx = ctx;
-                this.voices = Array.from({length: 4}, () => new Voice(ctx, dest));
-                
-                this.x = state.x; this.y = state.y;
-                this.anchorX = state.anchorX !== undefined ? state.anchorX : state.x;
-                this.anchorY = state.anchorY !== undefined ? state.anchorY : state.y;
-                
+                this.voices = Array.from({ length: VOICES_PER_NODE }, () => new Voice(ctx, dest));
+
+                this.x = safeNum(state.x, 0.5, 0, 1);
+                this.y = safeNum(state.y, 0.5, 0, 1);
+                this.anchorX = safeNum(state.anchorX, this.x, 0, 1);
+                this.anchorY = safeNum(state.anchorY, this.y, 0, 1);
+
                 // Physics State for Brownian Drift
-                this.vx = 0; // Velocity X
-                this.vy = 0; // Velocity Y
-                this.brownianState = { x: 0, y: 0 }; 
-                
-                // If scale is an object (from preset), use it, otherwise lookup
-                this.scale = typeof state.scale === 'string' ? (SCALES[state.scale] || SCALES['r']) : state.scale;
-                
-                this.treatment = state.treatment;
-                this.motion = state.motion || 'parallel'; // Ensure default exists
-                this.voicing = state.voicing || '2-2'; // Ensure default exists
-                this.velocity = state.velocity;
-                this.patternIdx = state.patternIdx || 0;
-                this.articulation = state.articulation || 'sustain';
+                this.vx = 0;
+                this.vy = 0;
+
+                // Accept either a scale key ('r') or a scale object, and never trust it blindly.
+                let scale = typeof state.scale === 'string' ? SCALES[state.scale] : state.scale;
+                if (!scale || !Array.isArray(scale.intervals) || scale.intervals.length === 0) scale = SCALES.r;
+                this.scale = scale;
+
+                this.treatment = ['chord', 'arp', 'line', 'improv'].includes(state.treatment) ? state.treatment : 'chord';
+                this.motion = state.motion === 'contrary' ? 'contrary' : 'parallel';
+                this.voicing = state.voicing === '1-3' ? '1-3' : '2-2';
+                this.velocity = safeNum(state.velocity, 0.6, 0.05, 1);
+                this.patternIdx = safeNum(Math.floor(state.patternIdx), 0, 0, PATTERN_DATA.length - 1);
+                this.articulation = state.articulation === 'pluck' ? 'pluck' : 'sustain';
                 this.patternStep = 0;
-                this.id = Math.random().toString(36).substr(2, 4).toUpperCase();
-                this.triggered = false; 
-                this.drift = state.drift || false;
-                this.driftT = Math.random() * 100;
+                this.id = Math.random().toString(36).slice(2, 6).toUpperCase();
+                this.flash = 0; // decaying trigger highlight, 1 -> 0
+                this.drift = !!state.drift;
                 this.fluxPhases = [0, 100, 200, 300].map(x => x + Math.random() * 1000);
             }
 
             getFreq(val, offset = 0) {
                 const octaves = 6;
                 const intervals = this.scale.intervals;
-                let idx = Math.floor(val * intervals.length * octaves) + offset;
+                const len = intervals.length;
+                let idx = Math.floor(val * len * octaves) + offset;
                 if (this.treatment !== 'chord') {
                     const pat = PATTERN_DATA[this.patternIdx].data;
                     idx += pat[this.patternStep % pat.length];
                 }
-                const oct = Math.floor(idx / intervals.length);
-                const step = Math.abs(idx % intervals.length);
-                const semitones = (oct * 12) + intervals[step] + 24; 
-                return 440 * Math.pow(2, (semitones - 69) / 12);
+                // Floored division plus the matching positive remainder. `idx % len` is
+                // negative for negative idx (patterns 4 and 6 both go below zero), and
+                // Math.abs() of it silently mirrors the scale degree to the wrong note.
+                const oct = Math.floor(idx / len);
+                const step = idx - oct * len;
+                const semitones = (oct * 12) + intervals[step] + 24;
+                return clamp(440 * Math.pow(2, (semitones - 69) / 12), MIN_FREQ, MAX_FREQ);
             }
 
             update(dt, isPlaying, bpm, atmosphereActive, waveType) {
-                // 1. TETHERED BROWNIAN DRIFT
-                // Replaced sine wave with physics-based stochastic tether
+                // Trigger highlight decays on a wall-clock schedule so the pulse reads
+                // the same at any frame rate.
+                if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 3.5);
+
+                // 1. TETHERED BROWNIAN DRIFT (physics-based stochastic tether)
                 if (this.drift) {
                     const bpmFactor = bpm / 120;
-                    
-                    // Force calculating pull towards anchor (Spring force)
-                    const tension = 2.0;
-                    const dx = this.anchorX - this.x;
-                    const dy = this.anchorY - this.y;
-                    
-                    const ax = dx * tension;
-                    const ay = dy * tension;
 
-                    // Brownian Kick (Stochastic Force via Box-Muller)
-                    const chaos = 0.05 * bpmFactor; // How much randomness
+                    // Spring force pulling back toward the anchor
+                    const tension = 2.0;
+                    const ax = (this.anchorX - this.x) * tension;
+                    const ay = (this.anchorY - this.y) * tension;
+
+                    // Brownian kick (stochastic force via Box-Muller)
+                    const chaos = 0.05 * bpmFactor;
                     const bx = gaussianRandom() * chaos;
                     const by = gaussianRandom() * chaos;
 
-                    // Integrate
                     this.vx += (ax + bx) * dt;
                     this.vy += (ay + by) * dt;
 
-                    // Friction/Damping
-                    this.vx *= 0.95;
-                    this.vy *= 0.95;
+                    // Frame-rate independent damping (0.95 per 60Hz frame)
+                    const damp = Math.pow(0.95, dt * 60);
+                    this.vx *= damp;
+                    this.vy *= damp;
+
+                    // Keep the integrator bounded even after a long stall
+                    this.vx = clamp(this.vx, -4, 4);
+                    this.vy = clamp(this.vy, -4, 4);
 
                     this.x += this.vx * dt;
                     this.y += this.vy * dt;
 
-                    // Reflective Boundaries (PDF Page 9)
-                    if (this.x > 1) { this.x = 1 - (this.x - 1); this.vx *= -1; }
-                    if (this.x < 0) { this.x = -this.x; this.vx *= -1; }
-                    if (this.y > 1) { this.y = 1 - (this.y - 1); this.vy *= -1; }
-                    if (this.y < 0) { this.y = -this.y; this.vy *= -1; }
-
-                } else {
-                    // Snap back if not drifting
-                     // If we just turned off drift, we might need to glide back, but for now instant snap
-                     // actually, let's lerp it for smoothness
-                     if (!atmosphereActive) {
-                         this.x += (this.anchorX - this.x) * 0.1;
-                         this.y += (this.anchorY - this.y) * 0.1;
-                     }
+                    // Reflective boundaries
+                    if (this.x > 1 || this.x < 0) { this.x = reflect01(this.x); this.vx *= -1; }
+                    if (this.y > 1 || this.y < 0) { this.y = reflect01(this.y); this.vy *= -1; }
+                } else if (!atmosphereActive) {
+                    // Glide back to the anchor. Exponential approach keeps the feel
+                    // identical whether we are running at 60 or 144 fps.
+                    const a = 1 - Math.exp(-dt * 12);
+                    this.x += (this.anchorX - this.x) * a;
+                    this.y += (this.anchorY - this.y) * a;
+                    this.vx = 0;
+                    this.vy = 0;
                 }
 
-                // 2. ATMOSPHERE 2.0 (Hydro Mode) - Stochastic Anchor Walking
+                // 2. ATMOSPHERE (Hydro Mode) - stochastic anchor walking
                 if (atmosphereActive) {
-                    const walkSpeed = 0.0005 * (bpm/120);
-                    // Use Gaussian for smoother walk
-                    this.anchorX += gaussianRandom() * walkSpeed;
-                    this.anchorY += gaussianRandom() * walkSpeed;
-                    
-                    // Reflective Boundary for Anchor
-                    if (this.anchorX > 1) { this.anchorX = 1 - (this.anchorX - 1); }
-                    if (this.anchorX < 0) { this.anchorX = -this.anchorX; }
-                    if (this.anchorY > 1) { this.anchorY = 1 - (this.anchorY - 1); }
-                    if (this.anchorY < 0) { this.anchorY = -this.anchorY; }
+                    const walkSpeed = 0.0005 * (bpm / 120) * (dt * 60);
+                    this.anchorX = reflect01(this.anchorX + gaussianRandom() * walkSpeed);
+                    this.anchorY = reflect01(this.anchorY + gaussianRandom() * walkSpeed);
 
                     if (!this.drift) {
                         this.x = this.anchorX;
@@ -713,29 +893,33 @@
                     }
                 }
 
-                this.fluxPhases = this.fluxPhases.map((p, i) => p + dt * (0.5 + i * 0.1));
-                
+                // Advance flux phases in place - this runs per node per frame, and
+                // rebuilding the array each time was pure GC churn.
+                for (let i = 0; i < this.fluxPhases.length; i++) {
+                    this.fluxPhases[i] += dt * (0.5 + i * 0.1);
+                }
+
                 if (isPlaying && this.treatment === 'chord' && this.articulation === 'sustain') this.sync(waveType);
             }
 
             sync(waveType) {
                 if (this.treatment !== 'chord' || this.articulation === 'pluck') return;
-                const ox = 1 - this.x; const oy = 1 - this.y;
-                
-                // Organic Pitch Drift using Gaussian noise
+                const ox = 1 - this.x, oy = 1 - this.y;
+
+                // Organic pitch drift: slow LFO plus Gaussian jitter
                 const getFlux = (i) => {
                     const p = this.fluxPhases[i];
-                    const volMod = 0.9 + Math.sin(p) * 0.1;
-                    // Brownian detuning - mixing sine LFO with gaussian jitter
-                    const jitter = gaussianRandom() * 0.001; 
-                    const detune = (Math.cos(p * 0.7) * 0.003) + jitter;
-                    return { volMod, detune };
+                    return {
+                        volMod: 0.9 + Math.sin(p) * 0.1,
+                        detune: (Math.cos(p * 0.7) * 0.003) + gaussianRandom() * 0.001
+                    };
                 };
-                
+
                 const updateV = (i, freq) => {
                     const f = getFlux(i);
                     this.voices[i].updateContinuous(freq, this.velocity, waveType, f.detune, f.volMod);
-                }
+                };
+
                 if (this.voicing === '2-2') {
                     updateV(0, this.getFreq(this.x));
                     updateV(1, this.getFreq(this.motion === 'contrary' ? ox : this.x + 0.005));
@@ -749,31 +933,32 @@
                 }
             }
 
+            // `time` is an AudioContext timestamp in the near future; every voice must
+            // be scheduled against it rather than against "now".
             schedule(time, waveType) {
-                this.triggered = true; 
-                
                 if (this.treatment === 'chord') {
-                    if (this.articulation === 'sustain') return; 
-                    else {
-                        const ox = 1 - this.x; const oy = 1 - this.y;
-                        const dur = 0.2;
-                        if (this.voicing === '2-2') {
-                            this.voices[0].trigger(this.getFreq(this.x), this.velocity, dur, waveType);
-                            this.voices[1].trigger(this.getFreq(this.motion === 'contrary' ? ox : this.x + 0.005), this.velocity, dur, waveType);
-                            this.voices[2].trigger(this.getFreq(this.y), this.velocity, dur, waveType);
-                            this.voices[3].trigger(this.getFreq(this.motion === 'contrary' ? oy : this.y + 0.005), this.velocity, dur, waveType);
-                        } else {
-                            this.voices[0].trigger(this.getFreq(this.x), this.velocity, dur, waveType);
-                            this.voices[1].trigger(this.getFreq(this.y, 0), this.velocity, dur, waveType);
-                            this.voices[2].trigger(this.getFreq(this.y, 2), this.velocity, dur, waveType);
-                            this.voices[3].trigger(this.getFreq(this.y, 4), this.velocity, dur, waveType);
-                        }
+                    // A sustained chord is driven continuously by sync(); nothing to fire.
+                    if (this.articulation === 'sustain') return;
+
+                    this.flash = 1;
+                    const ox = 1 - this.x, oy = 1 - this.y;
+                    const dur = 0.2;
+                    if (this.voicing === '2-2') {
+                        this.voices[0].trigger(this.getFreq(this.x), this.velocity, dur, waveType, time);
+                        this.voices[1].trigger(this.getFreq(this.motion === 'contrary' ? ox : this.x + 0.005), this.velocity, dur, waveType, time);
+                        this.voices[2].trigger(this.getFreq(this.y), this.velocity, dur, waveType, time);
+                        this.voices[3].trigger(this.getFreq(this.motion === 'contrary' ? oy : this.y + 0.005), this.velocity, dur, waveType, time);
+                    } else {
+                        this.voices[0].trigger(this.getFreq(this.x), this.velocity, dur, waveType, time);
+                        this.voices[1].trigger(this.getFreq(this.y, 0), this.velocity, dur, waveType, time);
+                        this.voices[2].trigger(this.getFreq(this.y, 2), this.velocity, dur, waveType, time);
+                        this.voices[3].trigger(this.getFreq(this.y, 4), this.velocity, dur, waveType, time);
                     }
                     return;
                 }
-                
+
                 const noteDur = 0.4;
-                const ox = 1 - this.x; const oy = 1 - this.y;
+                const ox = 1 - this.x, oy = 1 - this.y;
                 const pitches = [];
                 if (this.voicing === '2-2') {
                     pitches[0] = this.getFreq(this.x, 0);
@@ -787,38 +972,40 @@
                     pitches[3] = this.getFreq(this.y, 4);
                 }
 
+                this.flash = 1;
+
                 if (this.treatment === 'arp') {
-                    const vIdx = this.patternStep % 4;
-                    this.voices[vIdx].trigger(pitches[vIdx], this.velocity, noteDur, waveType);
-                } 
-                else if (this.treatment === 'line') {
-                    const vIdx = this.patternStep % 4;
-                    this.voices[vIdx].trigger(pitches[vIdx], this.velocity, 0.15, waveType);
-                }
-                else if (this.treatment === 'improv') {
+                    const vIdx = this.patternStep % VOICES_PER_NODE;
+                    this.voices[vIdx].trigger(pitches[vIdx], this.velocity, noteDur, waveType, time);
+                } else if (this.treatment === 'line') {
+                    const vIdx = this.patternStep % VOICES_PER_NODE;
+                    this.voices[vIdx].trigger(pitches[vIdx], this.velocity, 0.15, waveType, time);
+                } else if (this.treatment === 'improv') {
                     const k = (this.patternStep % 4 === 0) ? 2 : (1 + Math.floor(Math.random() * 2));
-                    const pick = []; 
-                    if (this.patternStep % 4 === 0) pick.push(0); 
-                    while (pick.length < k) { 
-                        const c = Math.floor(Math.random() * 4); 
-                        if (!pick.includes(c)) pick.push(c); 
+                    const pick = [];
+                    if (this.patternStep % 4 === 0) pick.push(0);
+                    while (pick.length < k) {
+                        const c = Math.floor(Math.random() * VOICES_PER_NODE);
+                        if (!pick.includes(c)) pick.push(c);
                     }
                     pick.forEach(idx => {
-                        this.voices[idx].trigger(pitches[idx], this.velocity, noteDur * 0.8, waveType);
+                        this.voices[idx].trigger(pitches[idx], this.velocity, noteDur * 0.8, waveType, time);
                     });
                 }
-                
+
                 this.patternStep++;
             }
 
-            dispose() { this.voices.forEach(v => v.stop()); }
-            
-            // For saving state
+            silence() { this.voices.forEach(v => v.stop()); }
+
+            dispose() { this.voices.forEach(v => v.dispose()); }
+
             serialize() {
                 return {
                     x: this.x, y: this.y,
                     anchorX: this.anchorX, anchorY: this.anchorY,
-                    scale: this.scale.id ? Object.keys(SCALES).find(key => SCALES[key].id === this.scale.id) : 'r', // store key 'r', 't' etc
+                    // Store the scale key ('r', 't', ...); fall back rather than emitting null.
+                    scale: Object.keys(SCALES).find(key => SCALES[key].id === this.scale.id) || 'r',
                     treatment: this.treatment,
                     motion: this.motion,
                     voicing: this.voicing,
@@ -838,77 +1025,85 @@
                 this.gain.gain.value = 0;
             }
 
-            // Implementation of Leaky Integrator Brown Noise from PDF Page 6/7
-            // "Static Generation: The Audio Buffer Approach"
+            // Leaky integrator brown noise, rendered once into a looping buffer.
             generate() {
-                const bufferSize = this.ctx.sampleRate * 5; // 5 seconds loop
+                const bufferSize = Math.floor(this.ctx.sampleRate * 5); // 5 second loop
                 const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
                 const data = buffer.getChannelData(0);
-                
+
                 let lastOut = 0;
                 for (let i = 0; i < bufferSize; i++) {
                     const white = Math.random() * 2 - 1;
-                    // Leaky Integrator: Y = (last + (white * 0.02)) / 1.02
-                    const brown = (lastOut + (white * 0.02)) / 1.02;
-                    lastOut = brown;
-                    data[i] = brown * 3.5; // Gain compensation (PDF Page 7)
+                    // Y = (last + (white * 0.02)) / 1.02
+                    lastOut = (lastOut + (white * 0.02)) / 1.02;
+                    data[i] = lastOut * 3.5; // gain compensation
                 }
-
                 return buffer;
             }
 
             start(dest) {
-                if(this.node) return;
-                const buff = this.generate();
+                if (this.node) return;
                 this.node = this.ctx.createBufferSource();
-                this.node.buffer = buff;
+                this.node.buffer = this.generate();
                 this.node.loop = true;
                 this.node.connect(this.gain);
                 this.gain.connect(dest);
-                this.node.start();
                 this.gain.gain.setValueAtTime(0, this.ctx.currentTime);
+                this.node.start();
             }
 
             setVolume(vol) {
-                // Smooth fade
-                this.gain.gain.setTargetAtTime(vol * 0.15, this.ctx.currentTime, 0.5);
+                this.gain.gain.setTargetAtTime(clamp(vol, 0, 1) * 0.15, this.ctx.currentTime, 0.5);
             }
         }
 
         class Engine {
             constructor() {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                this.ctx = new AudioContext();
-                
+                const Ctx = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new Ctx();
+
                 this.fx = new FXChain(this.ctx);
+
+                // Genuine limiter settings - the defaults (ratio 12, 30dB knee) make this
+                // a gentle compressor, which is not what a summing bus of 32 oscillators needs.
                 this.limiter = this.ctx.createDynamicsCompressor();
-                this.limiter.threshold.value = -12;
+                this.limiter.threshold.value = -6;
+                this.limiter.knee.value = 0;
+                this.limiter.ratio.value = 20;
+                this.limiter.attack.value = 0.003;
+                this.limiter.release.value = 0.25;
+
                 this.masterGain = this.ctx.createGain();
                 this.masterGain.gain.value = 0.8;
-                
+
                 this.masterGain.connect(this.fx.input);
                 this.fx.output.connect(this.limiter);
                 this.limiter.connect(this.ctx.destination);
-                
-                // Add Brown Noise Generator (Atmosphere)
+
+                // Atmosphere sub-bass bypasses the FX rack to stay clean.
                 this.atmosNoise = new BrownNoiseSource(this.ctx);
-                this.atmosNoise.start(this.limiter); // Bypass FX for clarity or route to FX? Let's bypass to keep it clean sub-bass
+                this.atmosNoise.start(this.limiter);
 
                 this.nodes = [];
                 this.activeNodeIdx = 0;
                 this.cursor = { x: 0.5, y: 0.5 };
-                
-                this.soundEnabled = true; 
+
+                this.soundEnabled = true;
                 this.waveType = 'sawtooth';
                 this.atmosphere = false;
 
-                this.canvas = document.getElementById('canvas');
+                this.canvas = $('canvas');
                 this.drawCtx = this.canvas.getContext('2d');
-                
+                this.viewW = 0;
+                this.viewH = 0;
+
                 this.nextNoteTime = 0;
+                this.step = 0;            // global sequencer step, drives swing
                 this.tempo = 120;
-                this.swing = 0; 
-                this.lastDrawTime = Date.now();
+                this.swing = 0;
+                this.started = false;
+                this.schedulerTimer = 0;
+                this.lastFrameTs = 0;
 
                 this.bindInputs();
                 this.bindFX();
@@ -916,170 +1111,74 @@
                 this.bindSaveLoad();
             }
 
+            // ---------- binding ----------
+
             bindWaveSelector() {
-                const sel = document.getElementById('ui-wave');
-                sel.onchange = (e) => {
-                    this.waveType = e.target.value;
-                };
+                $('ui-wave').addEventListener('change', (e) => { this.waveType = e.target.value; });
             }
 
             bindFX() {
-                const params = ['reverb', 'delay', 'widen', 'shaper', 'ring', 'drive', 'phaser', 'tremolo', 'tremolo-rate', 'crush', 'harm', 'mangle'];
-                params.forEach(p => {
-                    const slider = document.getElementById(`fx-${p}`);
-                    const valDisplay = document.getElementById(`val-${p}`);
-                    slider.oninput = (e) => {
-                        const val = parseInt(e.target.value);
-                        valDisplay.innerText = val + '%';
+                Object.keys(this.fx.fxState).forEach(p => {
+                    const slider = $(`fx-${p}`);
+                    const valDisplay = $(`val-${p}`);
+                    if (!slider) return;
+                    slider.addEventListener('input', (e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (valDisplay) valDisplay.textContent = val + '%';
                         this.fx.setParam(p, val);
-                    };
+                    });
                 });
             }
-            
+
             bindSaveLoad() {
-                const saveBtn = document.getElementById('btn-save');
-                const loadBtn = document.getElementById('btn-load');
-                const fileInput = document.getElementById('file-input');
+                const saveBtn = $('btn-save');
+                const loadBtn = $('btn-load');
+                const fileInput = $('file-input');
 
-                if (saveBtn) saveBtn.onclick = (e) => { e.stopPropagation(); this.savePreset(); };
-                if (loadBtn) loadBtn.onclick = (e) => { e.stopPropagation(); fileInput.click(); };
-                if (fileInput) fileInput.onchange = (e) => this.loadPreset(e);
-            }
-
-            savePreset() {
-                const data = {
-                    version: "5.0",
-                    tempo: this.tempo,
-                    swing: this.swing,
-                    waveType: this.waveType,
-                    atmosphere: this.atmosphere,
-                    fx: this.fx.fxState, // FX parameters
-                    nodes: this.nodes.map(n => n.serialize())
-                };
-                
-                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `music_mouse_preset_${Date.now()}.json`;
-                a.click();
-            }
-
-            loadPreset(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    try {
-                        const data = JSON.parse(event.target.result);
-                        
-                        // 1. Restore Globals
-                        this.tempo = data.tempo || 120;
-                        this.swing = data.swing || 0;
-                        this.waveType = data.waveType || 'sawtooth';
-                        this.atmosphere = data.atmosphere || false;
-                        
-                        // Update UI for Globals
-                        document.getElementById('ui-tempo').innerText = this.tempo;
-                        document.getElementById('ui-wave').value = this.waveType;
-                        
-                        // Update Atmos Noise
-                        const atmosEl = document.getElementById('ui-atmosphere');
-                        if(this.atmosphere) {
-                            atmosEl.classList.remove('hidden');
-                            this.atmosNoise.setVolume(1.0);
-                        } else {
-                            atmosEl.classList.add('hidden');
-                            this.atmosNoise.setVolume(0);
-                        }
-
-                        // 2. Restore FX
-                        if (data.fx) {
-                            Object.keys(data.fx).forEach(key => {
-                                const val = data.fx[key];
-                                const slider = document.getElementById(`fx-${key}`);
-                                const label = document.getElementById(`val-${key}`);
-                                if(slider) slider.value = val;
-                                if(label) label.innerText = val + '%';
-                                this.fx.setParam(key, val);
-                            });
-                        }
-
-                        // 3. Restore Nodes
-                        // Clear existing
-                        this.nodes.forEach(n => n.dispose());
-                        this.nodes = [];
-                        
-                        if (data.nodes && data.nodes.length > 0) {
-                            data.nodes.forEach((nData) => {
-                                // Rehydrate node state
-                                const scaleKey = nData.scale; // e.g. 'r'
-                                const state = {
-                                    x: nData.x, y: nData.y,
-                                    anchorX: nData.anchorX, anchorY: nData.anchorY,
-                                    scale: SCALES[scaleKey],
-                                    treatment: nData.treatment,
-                                    motion: nData.motion,
-                                    voicing: nData.voicing,
-                                    velocity: nData.velocity,
-                                    patternIdx: nData.patternIdx,
-                                    articulation: nData.articulation,
-                                    drift: nData.drift
-                                };
-                                const node = new PerformanceNode(this.ctx, this.masterGain, state);
-                                this.nodes.push(node);
-                            });
-                            this.activeNodeIdx = this.nodes.length - 1;
-                        } else {
-                            // Default reset if no nodes found
-                            this.reset();
-                        }
-                        
-                        this.updateHUD();
-                        
-                    } catch (err) {
-                        console.error("Failed to load preset:", err);
-                        alert("Invalid preset file.");
-                    }
-                };
-                reader.readAsText(file);
+                if (saveBtn) saveBtn.addEventListener('click', (e) => { e.stopPropagation(); this.savePreset(); });
+                if (loadBtn) loadBtn.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
+                if (fileInput) fileInput.addEventListener('change', (e) => this.loadPreset(e));
             }
 
             bindInputs() {
-                document.getElementById('launch-btn').onclick = () => {
-                    this.canvas.requestPointerLock();
+                $('launch-btn').addEventListener('click', () => {
+                    this.requestLock();
                     this.start();
-                };
-
-                document.getElementById('btn-tempo').onclick = (e) => {
-                    e.stopPropagation(); 
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    if (e.clientX - rect.left > rect.width / 2) this.changeTempo(5);
-                    else this.changeTempo(-5);
-                };
-
-                window.addEventListener('mousemove', (e) => {
-                    if (this.soundEnabled && document.pointerLockElement === this.canvas) {
-                        // Standard Performance Mode
-                        this.cursor.x = Math.max(0, Math.min(1, this.cursor.x + e.movementX * 0.0005));
-                        this.cursor.y = Math.max(0, Math.min(1, this.cursor.y - e.movementY * 0.0005));
-                        
-                        const n = this.nodes[this.activeNodeIdx];
-                        if (n) {
-                            n.anchorX = this.cursor.x;
-                            n.anchorY = this.cursor.y;
-                            if (!n.drift && !this.atmosphere) { n.x = n.anchorX; n.y = n.anchorY; }
-                            if (n.treatment === 'chord' && n.articulation === 'sustain') n.sync(this.waveType);
-                        }
-                    }
                 });
 
-                window.addEventListener('mousedown', () => {
-                    if (!this.soundEnabled) return;
-                    if (document.pointerLockElement !== this.canvas) return;
-                    
-                    let bestIdx = -1; let bestDist = 0.08;
+                $('btn-tempo').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    this.changeTempo(e.clientX - rect.left > rect.width / 2 ? 5 : -5);
+                });
+
+                window.addEventListener('mousemove', (e) => {
+                    if (!this.soundEnabled || document.pointerLockElement !== this.canvas) return;
+                    this.cursor.x = clamp(this.cursor.x + e.movementX * 0.0005, 0, 1);
+                    this.cursor.y = clamp(this.cursor.y - e.movementY * 0.0005, 0, 1);
+
+                    const n = this.nodes[this.activeNodeIdx];
+                    if (!n) return;
+                    n.anchorX = this.cursor.x;
+                    n.anchorY = this.cursor.y;
+                    if (!n.drift && !this.atmosphere) { n.x = n.anchorX; n.y = n.anchorY; }
+                    if (n.treatment === 'chord' && n.articulation === 'sustain') n.sync(this.waveType);
+                });
+
+                window.addEventListener('mousedown', (e) => {
+                    if (!this.soundEnabled || !this.started) return;
+
+                    // Pointer lock is lost whenever the user presses Escape. Clicking the
+                    // canvas puts us straight back into performance mode instead of
+                    // leaving the instrument looking frozen - but only the canvas does so.
+                    // Re-locking from any click would swallow the transport buttons and
+                    // the FX rack the moment the pointer was free.
+                    if (document.pointerLockElement !== this.canvas) {
+                        if (e.target === this.canvas) this.requestLock();
+                        return;
+                    }
+
+                    let bestIdx = -1, bestDist = 0.08;
                     this.nodes.forEach((n, i) => {
                         const d = Math.hypot(n.x - this.cursor.x, n.y - this.cursor.y);
                         if (d < bestDist) { bestDist = d; bestIdx = i; }
@@ -1092,119 +1191,165 @@
                     }
                 });
 
-                window.addEventListener('keydown', (e) => {
-                    const k = e.key.toLowerCase();
-                    const n = this.nodes[this.activeNodeIdx];
-                    if (!n) return;
-
-                    if (k === 'm') {
-                        this.toggleMouseMode();
-                        return;
+                // Escape drops pointer lock without any event we control; reflect that
+                // in the UI so the displayed state always matches reality.
+                document.addEventListener('pointerlockchange', () => {
+                    if (this.started && this.soundEnabled && document.pointerLockElement !== this.canvas) {
+                        this.setSoundEnabled(false);
                     }
-                    if (!this.soundEnabled) { if (k === ' ') { e.preventDefault(); return; } }
-                    if (k === ' ') { e.preventDefault(); if (this.soundEnabled) this.addLayer(); return; }
-                    if (k === 'backspace' || k === 'delete') { this.reset(); return; }
-                    
-                    if (SCALES[k]) n.scale = SCALES[k];
-                    
-                    // --- RESTORED D & F KEY BINDINGS ---
-                    if (k === 'd') {
-                        n.motion = n.motion === 'parallel' ? 'contrary' : 'parallel';
-                        if (this.soundEnabled && n.articulation === 'sustain') n.sync(this.waveType);
-                    }
-                    if (k === 'f') {
-                        n.voicing = n.voicing === '2-2' ? '1-3' : '2-2';
-                        if (this.soundEnabled && n.articulation === 'sustain') n.sync(this.waveType);
-                    }
-                    // -----------------------------------
-
-                    if (k === 'z') { n.treatment = 'chord'; if(this.soundEnabled && n.articulation==='sustain') n.sync(this.waveType); }
-                    if (k === 'x') { n.treatment = 'arp'; n.voices.forEach(v => v.stop()); }
-                    if (k === 'c') { n.treatment = 'line'; n.voices.forEach(v => v.stop()); }
-                    
-                    if (k === 'p') { 
-                        if (n.treatment === 'improv') {
-                            n.treatment = 'chord';
-                            if (n.articulation==='sustain') n.sync(this.waveType);
-                        } else {
-                            n.treatment = 'improv'; 
-                            n.voices.forEach(v => v.stop()); 
-                        }
-                    }
-
-                    if (k === 's') { 
-                        n.articulation = n.articulation === 'sustain' ? 'pluck' : 'sustain';
-                        if (n.articulation === 'pluck') n.voices.forEach(v => v.stop());
-                        else if (this.soundEnabled) n.sync(this.waveType);
-                    }
-                    if (k === 'g') n.patternIdx = (n.patternIdx + 1) % PATTERN_DATA.length;
-                    if (k === 'v') n.drift = !n.drift;
-                    if (k === 'b') this.swing = this.swing > 0 ? 0 : 0.25;
-                    if (k === '=' || k === '+') this.changeTempo(5);
-                    if (k === '-' || k === '_') this.changeTempo(-5);
-                    if (/[1-8]/.test(k)) n.velocity = parseInt(k) / 8;
-                    
-                    // Atmosphere Toggle
-                    if (k === '7') {
-                        this.atmosphere = !this.atmosphere;
-                        const el = document.getElementById('ui-atmosphere');
-                        if (this.atmosphere) {
-                            el.classList.remove('hidden');
-                            this.atmosNoise.setVolume(1.0);
-                        } else {
-                            el.classList.add('hidden');
-                            this.atmosNoise.setVolume(0);
-                        }
-                    }
-                    
-                    // Voice Cycle
-                    if (k === 'i') {
-                        const types = ['sawtooth', 'square', 'triangle', 'sine'];
-                        const curr = types.indexOf(this.waveType);
-                        this.waveType = types[(curr + 1) % 4];
-                        document.getElementById('ui-wave').value = this.waveType;
-                    }
-
-                    this.updateHUD();
                 });
-                
+
+                window.addEventListener('keydown', (e) => this.onKeyDown(e));
+
+                // A backgrounded tab throttles timers; resync rather than firing a
+                // burst of catch-up notes on return.
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) this.nextNoteTime = this.ctx.currentTime + 0.05;
+                });
+
                 window.addEventListener('resize', () => this.resize());
                 this.resize();
             }
 
-            toggleMouseMode() {
-                this.soundEnabled = !this.soundEnabled;
-                const panel = document.getElementById('fx-panel');
-                
-                if (!this.soundEnabled) {
-                    document.exitPointerLock();
-                    panel.classList.remove('hidden', 'opacity-0');
-                } else {
-                    this.canvas.requestPointerLock();
+            onKeyDown(e) {
+                // Don't hijack keys aimed at the waveform select or the file picker.
+                const tag = e.target && e.target.tagName;
+                if (tag && /^(INPUT|SELECT|TEXTAREA)$/.test(tag)) return;
+                if (e.repeat) return; // held keys must not spam toggles
+
+                const k = e.key.toLowerCase();
+                if (k === ' ' || k === 'backspace') e.preventDefault();
+
+                if (k === 'm') { this.toggleMouseMode(); return; }
+                if (!this.started) return;
+
+                if (k === ' ') { if (this.soundEnabled) this.addLayer(); return; }
+                if (k === 'backspace' || k === 'delete') { this.reset(); return; }
+
+                const n = this.nodes[this.activeNodeIdx];
+                if (!n) return;
+
+                if (SCALES[k]) n.scale = SCALES[k];
+
+                if (k === 'd') {
+                    n.motion = n.motion === 'parallel' ? 'contrary' : 'parallel';
+                    if (this.soundEnabled && n.articulation === 'sustain') n.sync(this.waveType);
+                }
+                if (k === 'f') {
+                    n.voicing = n.voicing === '2-2' ? '1-3' : '2-2';
+                    if (this.soundEnabled && n.articulation === 'sustain') n.sync(this.waveType);
+                }
+
+                if (k === 'z') { n.treatment = 'chord'; if (this.soundEnabled && n.articulation === 'sustain') n.sync(this.waveType); }
+                if (k === 'x') { n.treatment = 'arp'; n.silence(); }
+                if (k === 'c') { n.treatment = 'line'; n.silence(); }
+
+                if (k === 'p') {
+                    if (n.treatment === 'improv') {
+                        n.treatment = 'chord';
+                        if (n.articulation === 'sustain') n.sync(this.waveType);
+                    } else {
+                        n.treatment = 'improv';
+                        n.silence();
+                    }
+                }
+
+                if (k === 's') {
+                    n.articulation = n.articulation === 'sustain' ? 'pluck' : 'sustain';
+                    if (n.articulation === 'pluck') n.silence();
+                    else if (this.soundEnabled) n.sync(this.waveType);
+                }
+                if (k === 'g') n.patternIdx = (n.patternIdx + 1) % PATTERN_DATA.length;
+                if (k === 'v') n.drift = !n.drift;
+                if (k === 'b') this.swing = this.swing > 0 ? 0 : 0.25;
+                if (k === '=' || k === '+') this.changeTempo(5);
+                if (k === '-' || k === '_') this.changeTempo(-5);
+
+                // Velocity owns 1-8 outright. Atmosphere used to share "7", so pressing it
+                // did two unrelated things at once; it now lives on its own key.
+                if (k >= '1' && k <= '8') n.velocity = parseInt(k, 10) / 8;
+                if (k === 'a') this.setAtmosphere(!this.atmosphere);
+
+                if (k === 'i') {
+                    const curr = WAVE_TYPES.indexOf(this.waveType);
+                    this.waveType = WAVE_TYPES[(curr + 1) % WAVE_TYPES.length];
+                    $('ui-wave').value = this.waveType;
+                }
+
+                this.updateHUD();
+            }
+
+            // ---------- state ----------
+
+            requestLock() {
+                try {
+                    const p = this.canvas.requestPointerLock();
+                    if (p && typeof p.catch === 'function') p.catch(() => { /* user or browser declined */ });
+                } catch (err) { /* pointer lock unavailable */ }
+            }
+
+            setAtmosphere(on) {
+                this.atmosphere = !!on;
+                $('ui-atmosphere').classList.toggle('hidden', !this.atmosphere);
+                this.atmosNoise.setVolume(this.atmosphere ? 1.0 : 0);
+            }
+
+            setSoundEnabled(on) {
+                this.soundEnabled = !!on;
+                const panel = $('fx-panel');
+                if (this.soundEnabled) {
                     panel.classList.add('hidden', 'opacity-0');
+                } else {
+                    panel.classList.remove('hidden', 'opacity-0');
                 }
                 this.updateHUD();
             }
 
+            toggleMouseMode() {
+                if (this.soundEnabled) {
+                    document.exitPointerLock();
+                    this.setSoundEnabled(false);   // pointerlockchange also lands here; idempotent
+                } else {
+                    this.setSoundEnabled(true);
+                    if (this.started) this.requestLock();
+                }
+            }
+
             changeTempo(amount) {
-                this.tempo = Math.max(40, Math.min(300, this.tempo + amount));
+                this.tempo = clamp(this.tempo + amount, 40, 300);
                 this.updateHUD();
             }
 
+            // Summing 8 layers x 4 voices into one bus clips without a polyphony trim.
+            updateMasterTrim() {
+                const count = Math.max(1, this.nodes.length);
+                this.masterGain.gain.setTargetAtTime(0.8 / Math.sqrt(count), this.ctx.currentTime, 0.1);
+            }
+
             async start() {
-                await this.ctx.resume();
-                document.getElementById('start-screen').style.opacity = '0';
-                document.getElementById('dashboard').style.opacity = '1';
-                document.getElementById('footer').style.opacity = '1';
-                setTimeout(() => document.getElementById('start-screen').style.display = 'none', 800);
+                if (this.started) return;   // a second click must not spawn parallel loops
+                this.started = true;
+
+                try { await this.ctx.resume(); } catch (err) { /* already running */ }
+
+                const startScreen = $('start-screen');
+                startScreen.style.opacity = '0';
+                startScreen.style.pointerEvents = 'none'; // stop it swallowing clicks mid-fade
+                $('dashboard').style.opacity = '1';
+                $('footer').style.opacity = '1';
+                setTimeout(() => { startScreen.style.display = 'none'; }, 800);
+
                 this.nextNoteTime = this.ctx.currentTime + 0.1;
                 this.addLayer();
                 this.scheduleLoop();
-                requestAnimationFrame(() => this.drawLoop());
+                requestAnimationFrame((ts) => this.drawLoop(ts));
             }
 
             addLayer() {
-                if (this.nodes.length >= 8) return;
+                if (this.nodes.length >= MAX_NODES) {
+                    toast(`Layer limit reached (${MAX_NODES})`);
+                    return;
+                }
                 const current = this.nodes[this.activeNodeIdx];
                 const base = current ? {
                     scale: current.scale,
@@ -1215,7 +1360,7 @@
                     patternIdx: current.patternIdx,
                     articulation: current.articulation
                 } : {
-                    scale: SCALES['r'],
+                    scale: SCALES.r,
                     treatment: 'chord',
                     motion: 'parallel',
                     voicing: '2-2',
@@ -1228,97 +1373,231 @@
                 });
                 this.nodes.push(newNode);
                 this.activeNodeIdx = this.nodes.length - 1;
-                if (this.soundEnabled && newNode.treatment === 'chord' && newNode.articulation === 'sustain') newNode.sync(this.waveType);
+                this.updateMasterTrim();
+                if (this.soundEnabled && newNode.treatment === 'chord' && newNode.articulation === 'sustain') {
+                    newNode.sync(this.waveType);
+                }
                 this.updateHUD();
             }
 
-            reset() {
+            clearNodes() {
                 this.nodes.forEach(n => n.dispose());
                 this.nodes = [];
-                if (this.soundEnabled) this.addLayer();
-                else { this.addLayer(); this.nodes[0].dispose(); }
+                this.activeNodeIdx = 0;
             }
 
-            scheduleLoop() {
-                const lookahead = 0.1;
-                while (this.nextNoteTime < this.ctx.currentTime + lookahead) {
-                    this.nodes.forEach((n, i) => {
-                        const shouldPlay = (i === this.activeNodeIdx) ? this.soundEnabled : true;
-                        if (shouldPlay) n.schedule(this.nextNoteTime, this.waveType);
-                    });
-                    const step = (this.nodes[0]?.patternStep || 0);
-                    const isSwingStep = step % 2 === 0;
-                    const swingFactor = isSwingStep ? (1 + this.swing) : (1 - this.swing);
-                    this.nextNoteTime += (60.0 / (this.tempo * 4)) * swingFactor;
-                }
-                setTimeout(() => this.scheduleLoop(), 25);
+            reset() {
+                this.clearNodes();
+                this.step = 0;
+                this.addLayer();
             }
+
+            // ---------- presets ----------
+
+            savePreset() {
+                const data = {
+                    version: "5.1",
+                    tempo: this.tempo,
+                    swing: this.swing,
+                    waveType: this.waveType,
+                    atmosphere: this.atmosphere,
+                    fx: { ...this.fx.fxState },
+                    nodes: this.nodes.map(n => n.serialize())
+                };
+
+                const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `music_mouse_preset_${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                // Blob URLs pin their data until revoked.
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }
+
+            loadPreset(e) {
+                const input = e.target;
+                const file = input.files && input.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onerror = () => { toast('Could not read file'); input.value = ''; };
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (!data || typeof data !== 'object') throw new Error('not a preset object');
+
+                        // 1. Globals - every field validated; a hand-edited preset must not
+                        //    be able to put the engine into an unrecoverable state.
+                        this.tempo = safeNum(data.tempo, 120, 40, 300);
+                        this.swing = safeNum(data.swing, 0, 0, 0.5);
+                        this.waveType = WAVE_TYPES.includes(data.waveType) ? data.waveType : 'sawtooth';
+                        $('ui-wave').value = this.waveType;
+                        this.setAtmosphere(!!data.atmosphere);
+
+                        // 2. FX - reset every slider first so a partial preset does not
+                        //    leave stale values from the previous patch behind.
+                        Object.keys(this.fx.fxState).forEach(key => {
+                            const raw = data.fx && Object.prototype.hasOwnProperty.call(data.fx, key) ? data.fx[key] : 0;
+                            const val = safeNum(raw, 0, 0, 100);
+                            const slider = $(`fx-${key}`);
+                            const label = $(`val-${key}`);
+                            if (slider) slider.value = val;
+                            if (label) label.textContent = val + '%';
+                            this.fx.setParam(key, val);
+                        });
+
+                        // 3. Nodes
+                        this.clearNodes();
+                        this.step = 0;
+                        const incoming = Array.isArray(data.nodes) ? data.nodes.slice(0, MAX_NODES) : [];
+                        incoming.forEach((nData) => {
+                            if (!nData || typeof nData !== 'object') return;
+                            // PerformanceNode validates and clamps each field itself.
+                            this.nodes.push(new PerformanceNode(this.ctx, this.masterGain, nData));
+                        });
+
+                        if (this.nodes.length === 0) {
+                            this.addLayer();
+                        } else {
+                            this.activeNodeIdx = this.nodes.length - 1;
+                            this.updateMasterTrim();
+                        }
+
+                        const active = this.nodes[this.activeNodeIdx];
+                        this.cursor.x = active.anchorX;
+                        this.cursor.y = active.anchorY;
+
+                        if (this.soundEnabled) {
+                            this.nodes.forEach(n => {
+                                if (n.treatment === 'chord' && n.articulation === 'sustain') n.sync(this.waveType);
+                            });
+                        }
+
+                        this.updateHUD();
+                        toast('Preset loaded');
+                    } catch (err) {
+                        console.error('Failed to load preset:', err);
+                        toast('Invalid preset file');
+                    } finally {
+                        // Clear the input so re-selecting the same file fires change again.
+                        input.value = '';
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            // ---------- scheduling ----------
+
+            scheduleLoop() {
+                const now = this.ctx.currentTime;
+
+                // A throttled tab leaves nextNoteTime far in the past. Without this the
+                // while loop below dumps every missed step into one machine-gun burst.
+                if (this.nextNoteTime < now - 0.25) this.nextNoteTime = now + 0.02;
+
+                let guard = 0;
+                while (this.nextNoteTime < now + LOOKAHEAD && guard++ < 128) {
+                    for (let i = 0; i < this.nodes.length; i++) {
+                        const shouldPlay = (i === this.activeNodeIdx) ? this.soundEnabled : true;
+                        if (shouldPlay) this.nodes[i].schedule(this.nextNoteTime, this.waveType);
+                    }
+                    // Swing rides a global step counter. Reading node 0's patternStep meant
+                    // a sustained chord (which never advances it) pinned the ratio to one
+                    // side forever, turning swing into a flat tempo change.
+                    const swingFactor = (this.step % 2 === 0) ? (1 + this.swing) : (1 - this.swing);
+                    this.nextNoteTime += (60.0 / (this.tempo * 4)) * swingFactor;
+                    this.step++;
+                }
+
+                this.schedulerTimer = setTimeout(() => this.scheduleLoop(), SCHEDULER_TICK);
+            }
+
+            // ---------- view ----------
 
             updateHUD() {
                 const n = this.nodes[this.activeNodeIdx];
-                if (!n) return;
-                document.getElementById('ui-mode').innerText = n.scale.id;
-                document.getElementById('ui-voicing').innerText = `VOICING: ${n.voicing}`;
-                
-                const treatEl = document.getElementById('ui-treatment');
-                treatEl.innerText = `${n.treatment}`;
-                treatEl.className = n.treatment === 'improv' ? 'stat-value text-yellow-400' : 'stat-value';
-                
-                document.getElementById('ui-motion').innerText = `MOTION: ${n.motion.toUpperCase()} | PATTERN: ${PATTERN_DATA[n.patternIdx].name.split(' ')[0]}`;
-                document.getElementById('ui-tempo').innerText = this.tempo;
-                
-                const statusEl = document.getElementById('ui-status');
+                $('ui-tempo').textContent = this.tempo;
+                $('ui-swing').textContent = this.swing > 0 ? 'BPM · SWING' : 'BPM';
+
+                const statusEl = $('ui-status');
                 if (statusEl) {
-                    if (this.soundEnabled) {
-                        statusEl.innerText = "ACTIVE";
-                        statusEl.className = "text-green-400";
-                    } else {
-                        statusEl.innerText = "UI MODE (FX)";
-                        statusEl.className = "text-blue-400 blink-pulse";
-                    }
+                    statusEl.textContent = this.soundEnabled ? 'ACTIVE' : 'UI MODE (FX)';
+                    statusEl.className = this.soundEnabled ? 'text-green-400' : 'text-blue-400 blink-pulse';
                 }
-                const artLabel = document.getElementById('ui-articulation');
-                if(artLabel) {
-                    artLabel.innerText = n.articulation.toUpperCase();
+
+                $('ui-layers').textContent = `${this.nodes.length}/${MAX_NODES}`;
+                if (!n) return;
+
+                $('ui-mode').textContent = n.scale.id;
+                $('ui-voicing').textContent = `VOICING: ${n.voicing}`;
+                $('ui-velocity').textContent = `Vel: ${Math.round(n.velocity * 100)}%`;
+
+                const treatEl = $('ui-treatment');
+                treatEl.textContent = n.treatment.toUpperCase();
+                treatEl.className = n.treatment === 'improv' ? 'stat-value text-yellow-400' : 'stat-value';
+
+                $('ui-motion').textContent =
+                    `MOTION: ${n.motion.toUpperCase()} | PATTERN: ${PATTERN_DATA[n.patternIdx].name.split(' ')[1]}`;
+
+                const artLabel = $('ui-articulation');
+                if (artLabel) {
+                    artLabel.textContent = n.articulation.toUpperCase();
                     artLabel.style.color = n.articulation === 'sustain' ? '#a78bfa' : '#34d399';
                 }
             }
 
+            // Back the canvas with the device pixel ratio; a 1:1 backing store renders
+            // the hairline crosshairs soft on every HiDPI display.
             resize() {
-                this.canvas.width = window.innerWidth;
-                this.canvas.height = window.innerHeight;
+                const dpr = clamp(window.devicePixelRatio || 1, 1, 2);
+                this.viewW = window.innerWidth;
+                this.viewH = window.innerHeight;
+                this.canvas.width = Math.round(this.viewW * dpr);
+                this.canvas.height = Math.round(this.viewH * dpr);
+                this.canvas.style.width = this.viewW + 'px';
+                this.canvas.style.height = this.viewH + 'px';
+                this.drawCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
             }
 
-            drawLoop() {
-                const now = Date.now();
-                const dt = (now - this.lastDrawTime) / 1000;
-                this.lastDrawTime = now;
-                const ctx = this.drawCtx; const w = this.canvas.width; const h = this.canvas.height;
-                
-                ctx.fillStyle = '#08080a'; ctx.fillRect(0, 0, w, h);
+            drawLoop(ts) {
+                // rAF's own timestamp, clamped: a backgrounded tab hands back a dt of
+                // several seconds, which would launch the drift integrator into orbit.
+                const dt = this.lastFrameTs ? clamp((ts - this.lastFrameTs) / 1000, 0, MAX_DT) : 0;
+                this.lastFrameTs = ts;
+
+                const ctx = this.drawCtx;
+                const w = this.viewW, h = this.viewH;
+
+                ctx.fillStyle = '#08080a';
+                ctx.fillRect(0, 0, w, h);
+
                 const activeNode = this.nodes[this.activeNodeIdx];
                 if (this.soundEnabled && activeNode) {
-                    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+                    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+                    ctx.lineWidth = 1;
                     const gridSteps = activeNode.scale.intervals.length * 4;
-                    for(let i=0; i<=gridSteps; i++) {
+                    ctx.beginPath();
+                    for (let i = 0; i <= gridSteps; i++) {
                         const p = i / gridSteps;
-                        ctx.beginPath(); ctx.moveTo(0, p*h); ctx.lineTo(w, p*h); ctx.stroke();
-                        ctx.beginPath(); ctx.moveTo(p*w, 0); ctx.lineTo(p*w, h); ctx.stroke();
+                        ctx.moveTo(0, p * h); ctx.lineTo(w, p * h);
+                        ctx.moveTo(p * w, 0); ctx.lineTo(p * w, h);
                     }
+                    ctx.stroke();
                 }
 
                 this.nodes.forEach((n, i) => {
                     const isActive = (i === this.activeNodeIdx);
                     const isPlaying = isActive ? this.soundEnabled : true;
-                    // Pass BPM, Atmosphere Flag, and WaveType to update loop
                     n.update(dt, isPlaying, this.tempo, this.atmosphere, this.waveType);
-                    
+
                     const color = n.scale.color;
-                    const cx = n.x * w; const cy = (1 - n.y) * h;
-                    const strokeStyle = this.soundEnabled ? (isActive ? color : color + '55') : '#444';
-                    
+                    const cx = n.x * w;
+                    const cy = (1 - n.y) * h;
+
                     ctx.beginPath();
-                    ctx.strokeStyle = strokeStyle;
+                    ctx.strokeStyle = this.soundEnabled ? (isActive ? color : color + '55') : '#444';
                     ctx.lineWidth = isActive ? 2 : 1;
                     ctx.shadowBlur = (isActive && this.soundEnabled) ? 15 : 0;
                     ctx.shadowColor = color;
@@ -1327,53 +1606,57 @@
                     ctx.stroke();
                     ctx.shadowBlur = 0;
 
-                    ctx.fillStyle = (isActive && !this.soundEnabled) ? '#666' : color; 
-                    ctx.font = 'bold 10px IBM Plex Mono';
-                    const label = isActive ? `[${n.id}]` : `L${i+1}`;
-                    ctx.fillText(label, cx + 8, cy - 8);
+                    ctx.fillStyle = (isActive && !this.soundEnabled) ? '#666' : color;
+                    ctx.font = 'bold 10px "IBM Plex Mono", monospace';
+                    ctx.fillText(isActive ? `[${n.id}]` : `L${i + 1}`, cx + 8, cy - 8);
 
-                    // Physics Visualization
-                    if (n.drift || n.triggered || this.atmosphere) {
+                    // Node body, plus a halo that actually decays on each trigger.
+                    // `triggered` was latched true on the first note and never cleared,
+                    // so the pulse was permanently on and read as static.
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                    ctx.fill();
+
+                    if (n.flash > 0) {
                         ctx.beginPath();
-                        const rad = n.triggered ? 8 : 4;
-                        const op = n.triggered ? 0.9 : 0.8;
-                        ctx.arc(cx, cy, rad, 0, Math.PI*2);
-                        ctx.fillStyle = `rgba(255,255,255,${op})`;
+                        ctx.arc(cx, cy, 4 + n.flash * 9, 0, Math.PI * 2);
+                        ctx.strokeStyle = `rgba(255,255,255,${(n.flash * 0.7).toFixed(3)})`;
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                    }
+
+                    // Elastic tether to the anchor while drifting
+                    if (n.drift && isActive) {
+                        const ax = n.anchorX * w;
+                        const ay = (1 - n.anchorY) * h;
+
+                        ctx.beginPath();
+                        ctx.arc(ax, ay, 2, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(255,255,255,0.8)';
                         ctx.fill();
-                        
-                        // Visualize the Tether if drifting
-                        if(n.drift && isActive) {
-                            const ax = n.anchorX * w;
-                            const ay = (1-n.anchorY) * h;
-                            
-                            // Draw Anchor Point
-                            ctx.beginPath();
-                            ctx.arc(ax, ay, 2, 0, Math.PI*2);
-                            ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                            ctx.fill();
-                            
-                            // Draw Elastic Tether
-                            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-                            ctx.setLineDash([2, 4]);
-                            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(cx, cy); ctx.stroke();
-                            ctx.setLineDash([]);
-                        }
+
+                        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([2, 4]);
+                        ctx.beginPath();
+                        ctx.moveTo(ax, ay);
+                        ctx.lineTo(cx, cy);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
                     }
                 });
-                
+
                 if (!this.soundEnabled) {
                     ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
                     ctx.fillRect(0, 0, 20, 20);
                 }
-                requestAnimationFrame(() => this.drawLoop());
+
+                requestAnimationFrame((t) => this.drawLoop(t));
             }
         }
 
         window.engine = new Engine();
     </script>
 </body>
-</html>
-    
-  </body>
-  
 </html>
